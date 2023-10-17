@@ -1,16 +1,54 @@
-import React, { useState } from "react";
-import { View, Text, Image, ImageBackground, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  Image,
+  ImageBackground,
+  TouchableOpacity,
+} from "react-native";
+import { styles } from "./style.js";
+import { snakeAndLadders, initialCordinates, boxCordinates } from "./conf.js";
 
+/**
+ * The main component of the Snake and Ladder game.
+ * @returns {JSX.Element} The JSX element of the game.
+ */
 const App = () => {
   const [playerPosition, setPlayerPosition] = useState(0);
+  const [playerCordinates, setPlayerCordinates] = useState(initialCordinates);
+  const [diceRoll, setDiceRoll] = useState(0);
+  const [win, setWin] = useState(false);
 
+  useEffect(() => {
+    movePlayer();
+  }, [diceRoll, playerPosition]);
+
+  /**
+   * Rolls the dice and updates the player position.
+   */
   const throwDice = () => {
-    const diceRoll = Math.floor(Math.random() * 6) + 1;
-    setPlayerPosition((prevPosition) => prevPosition + diceRoll);
+    const newDiceRoll = Math.floor(Math.random() * 6) + 1;
+    setDiceRoll(newDiceRoll);
+    setPlayerPosition((prevPosition) => prevPosition + newDiceRoll);
   };
 
-  const windowWidth = Dimensions.get("window").width;
-  const windowHeight = Dimensions.get("window").height;
+  /**
+   * Moves the player to the new position based on the dice roll and the snake and ladder positions.
+   */
+  const movePlayer = () => {
+    if (playerPosition > 35) {
+      setPlayerPosition(0);
+      setWin(true);
+      return;
+    }
+    if (snakeAndLadders[playerPosition]) {
+      setPlayerPosition(Number(snakeAndLadders[playerPosition]));
+    }
+    let position = playerPosition;
+    const row = Math.floor(position / 5);
+    const column = position % 5;
+    setPlayerCordinates(boxCordinates[row][column]);
+  };
 
   return (
     <View style={styles.container}>
@@ -18,62 +56,37 @@ const App = () => {
         source={require("./assets/Board.png")}
         style={styles.board}
       >
-        <Image source={require("./assets/player.png")} style={styles.playerImage} />
+        <Image
+          source={require("./assets/player.png")}
+          style={[
+            styles.playerImage,
+            { left: playerCordinates.left, bottom: playerCordinates.bottom },
+          ]}
+        />
       </ImageBackground>
       <View style={styles.gameInfo}>
         <Text style={styles.infoText}>Snake and Ladder Board</Text>
         <Text style={styles.infoText}>Your Position: {playerPosition}</Text>
-        <TouchableOpacity style={styles.button} onPress={throwDice}>
-          <Text style={styles.buttonText}>Throw the Dice</Text>
+        <Text style={styles.rollText}>{win ? "You Won!" : diceRoll}</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => {
+            if (win) {
+              setWin(false);
+              setPlayerPosition(0);
+              setPlayerCordinates(initialCordinates);
+            } else {
+              throwDice();
+            }
+          }}
+        >
+          <Text style={styles.buttonText}>
+            {win ? "Play Again" : "Throw Dice"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
   );
-}
-
-const playerSize = 25; // Adjust the player image size as needed
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f0f0f0",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  board: {
-    width: "80%", // Adjust the board's width as needed
-    aspectRatio: 1, // Maintain a square aspect ratio
-    alignItems: "center",
-    justifyContent: "center",
-    margin: 20, // Add margin around the board
-  },
-  playerImage: {
-    width: playerSize,
-    height: playerSize + 12,
-    position: "absolute",
-    bottom: 0,
-    left: 23,
-    // opacity: 0.2,
-  },
-  gameInfo: {
-    padding: 20,
-    alignItems: "center",
-  },
-  infoText: {
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  button: {
-    padding: 10,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "green",
-    backgroundColor: "lightgreen",
-  },
-  buttonText: {
-    fontSize: 16,
-    color: "green",
-  },
-});
+};
 
 export default App;
